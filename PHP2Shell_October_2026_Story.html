@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The PHP2Shell Story</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f5f0; --paper:#ffffff; --ink:#1b1d24; --muted:#5c6170; --line:#e3dfd6;
+  --php:#6d6fb3; --php-soft:#e9e9f7; --red:#d6453d; --red-soft:#fbe7e5;
+  --amber:#c98a12; --amber-soft:#fbf1dc; --green:#2f8f5b; --green-soft:#e2f3ea;
+  --code:#f0eee8;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121319; --paper:#1b1d26; --ink:#ecebf2; --muted:#a3a7b6; --line:#2c2f3b;
+    --php:#9a9ce0; --php-soft:#25263a; --red:#ff6f66; --red-soft:#3a2120;
+    --amber:#f0b340; --amber-soft:#382c14; --green:#5cc98d; --green-soft:#16301f;
+    --code:#23252f;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121319; --paper:#1b1d26; --ink:#ecebf2; --muted:#a3a7b6; --line:#2c2f3b;
+  --php:#9a9ce0; --php-soft:#25263a; --red:#ff6f66; --red-soft:#3a2120;
+  --amber:#f0b340; --amber-soft:#382c14; --green:#5cc98d; --green-soft:#16301f;
+  --code:#23252f;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 Inter,system-ui,sans-serif}
+h1,h2,h3{font-family:"Space Grotesk",sans-serif;line-height:1.2;margin:0 0 .5em}
+h2{font-size:1.9rem;margin-top:0}
+h3{font-size:1.15rem}
+a{color:var(--php)}
+code,.mono{font-family:"JetBrains Mono",monospace;font-size:.88em;background:var(--code);padding:.1em .35em;border-radius:4px}
+.wrap{max-width:980px;margin:0 auto;padding:0 16px}
+section{padding:56px 0;border-bottom:1px solid var(--line)}
+.kicker{font:600 .78rem/1 "JetBrains Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--php);margin-bottom:12px}
+.lede{font-size:1.1rem;color:var(--muted);max-width:68ch}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+svg{max-width:100%;height:auto;display:block}
+
+/* hero */
+.hero{padding:40px 0 56px;background:radial-gradient(ellipse at 70% 0%,var(--php-soft),transparent 60%)}
+.hero-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:32px;align-items:center}
+.hero h1{font-size:clamp(2.2rem,6vw,3.6rem);letter-spacing:-.02em}
+.hero h1 span{color:var(--red)}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.badge{font:600 .8rem/1 Inter;padding:8px 12px;border-radius:999px;background:var(--paper);border:1px solid var(--line)}
+.badge.red{background:var(--red-soft);color:var(--red);border-color:transparent}
+@media(max-width:760px){.hero-grid{grid-template-columns:1fr}}
+
+/* tldr */
+.tldr{border-left:5px solid var(--red);background:var(--paper);padding:20px 24px;border-radius:0 14px 14px 0;margin-top:28px}
+.tldr ol{margin:.4em 0 0;padding-left:1.2em}
+.tldr li{margin:.35em 0}
+
+/* stats */
+.stat{text-align:left}
+.stat b{display:block;font:700 2rem/1.1 "Space Grotesk";color:var(--php)}
+.stat span{color:var(--muted);font-size:.9rem}
+
+/* analogy */
+.analogy{display:grid;grid-template-columns:120px 1fr;gap:16px;align-items:start}
+@media(max-width:560px){.analogy{grid-template-columns:1fr}}
+
+/* timeline */
+.tl{position:relative;margin-top:28px;padding-left:28px}
+.tl::before{content:"";position:absolute;left:8px;top:6px;bottom:6px;width:3px;background:linear-gradient(var(--php),var(--red));border-radius:3px}
+.ev{position:relative;margin-bottom:22px}
+.ev::before{content:"";position:absolute;left:-26px;top:7px;width:13px;height:13px;border-radius:50%;background:var(--paper);border:3px solid var(--php)}
+.ev.hot::before{border-color:var(--red);background:var(--red)}
+.ev .date{font:600 .8rem/1 "JetBrains Mono";color:var(--php);text-transform:uppercase;letter-spacing:.06em}
+.ev.hot .date{color:var(--red)}
+.ev h3{margin:.3em 0 .2em}
+.ev p{margin:0;color:var(--muted)}
+
+/* cast */
+.who{display:flex;gap:14px;align-items:flex-start}
+.avatar{flex:0 0 52px;height:52px;border-radius:14px;display:grid;place-items:center;font:700 1.1rem "Space Grotesk";color:#fff}
+.who p{margin:.2em 0 0;color:var(--muted);font-size:.93rem}
+.role{font:600 .72rem/1 "JetBrains Mono";text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+
+/* countries */
+.pill-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.cty{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;flex:1 1 210px}
+.cty b{font-family:"Space Grotesk"}
+.cty .cc{font:700 .72rem "JetBrains Mono";background:var(--php-soft);color:var(--php);padding:3px 6px;border-radius:5px;margin-right:6px}
+.cty p{margin:.35em 0 0;font-size:.9rem;color:var(--muted)}
+
+/* conspiracy */
+.theory{border-radius:14px;padding:20px;background:var(--paper);border:1px solid var(--line);position:relative}
+.verdict{display:inline-block;font:700 .72rem/1 "JetBrains Mono";letter-spacing:.06em;text-transform:uppercase;padding:6px 9px;border-radius:6px;margin-bottom:10px}
+.v-true{background:var(--green-soft);color:var(--green)}
+.v-mix{background:var(--amber-soft);color:var(--amber)}
+.v-false{background:var(--red-soft);color:var(--red)}
+.v-open{background:var(--php-soft);color:var(--php)}
+.theory p{margin:.4em 0 0;font-size:.94rem}
+.theory .ev-label{font-weight:600}
+.meter{height:8px;border-radius:8px;background:var(--line);margin-top:14px;overflow:hidden}
+.meter i{display:block;height:100%;border-radius:8px}
+
+/* chatter */
+blockquote{margin:0;padding:16px 18px;border-radius:12px;background:var(--php-soft);font-style:italic}
+blockquote footer{font-style:normal;font-size:.82rem;color:var(--muted);margin-top:8px}
+
+/* glossary */
+dl{display:grid;grid-template-columns:minmax(120px,200px) 1fr;gap:10px 18px;margin:0}
+dt{font-weight:600;font-family:"Space Grotesk"}
+dd{margin:0;color:var(--muted)}
+@media(max-width:560px){dl{grid-template-columns:1fr}dd{margin-bottom:8px}}
+
+.note{font-size:.88rem;color:var(--muted);background:var(--amber-soft);border-radius:10px;padding:12px 14px;margin-top:18px}
+.src li{margin:.3em 0;font-size:.92rem}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.toc a{font-size:.85rem;text-decoration:none;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink)}
+footer.end{padding:40px 0;color:var(--muted);font-size:.85rem}
+</style>
+</head>
+<body>
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="kicker">Case file · October 2026</div>
+      <h1>The week the internet's <span>elephant</span> caught fire</h1>
+      <p class="lede">How an AI-discovered bug in PHP, a language behind about 70% of websites, leaked early and pushed governments across Europe and beyond to take their own websites offline. Written in plain language, with the full timeline, the people involved, and the conspiracy theories, each checked against the evidence.</p>
+      <div class="badges">
+        <span class="badge red">CVE-2026-109618</span>
+        <span class="badge red">CVE-2026-109619</span>
+        <span class="badge">CVSS 9.2 · Critical</span>
+        <span class="badge">Patched 21 Oct 2026</span>
+      </div>
+    </div>
+    <!-- Hero illustration: PHP elephant on a server stack, lightning -->
+    <svg viewBox="0 0 420 340" role="img" aria-label="Illustration of the PHP elephant standing on a stack of servers struck by lightning">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6d6fb3" stop-opacity=".25"/><stop offset="1" stop-color="#6d6fb3" stop-opacity="0"/></linearGradient>
+      </defs>
+      <circle cx="210" cy="170" r="160" fill="url(#sky)"/>
+      <!-- servers -->
+      <g>
+        <rect x="110" y="215" width="200" height="34" rx="6" fill="#2a2d3a"/>
+        <rect x="110" y="253" width="200" height="34" rx="6" fill="#2a2d3a"/>
+        <rect x="110" y="291" width="200" height="34" rx="6" fill="#2a2d3a"/>
+        <g fill="#d6453d"><circle cx="130" cy="232" r="4"/><circle cx="130" cy="270" r="4"/><circle cx="130" cy="308" r="4"/></g>
+        <g stroke="#555a6e" stroke-width="3" stroke-linecap="round"><line x1="150" y1="232" x2="250" y2="232"/><line x1="150" y1="270" x2="230" y2="270"/><line x1="150" y1="308" x2="260" y2="308"/></g>
+        <text x="292" y="237" font-family="JetBrains Mono" font-size="11" fill="#ff8a80" text-anchor="end">ERR</text>
+      </g>
+      <!-- elephant -->
+      <g transform="translate(135 95)">
+        <ellipse cx="80" cy="70" rx="78" ry="52" fill="#8f91d1"/>
+        <ellipse cx="22" cy="58" rx="34" ry="40" fill="#7a7cc4"/>
+        <circle cx="34" cy="48" r="5" fill="#1b1d24"/>
+        <path d="M6 72 C-14 90 -10 118 8 122" stroke="#8f91d1" stroke-width="16" fill="none" stroke-linecap="round"/>
+        <rect x="40" y="108" width="20" height="16" rx="4" fill="#7a7cc4"/>
+        <rect x="110" y="108" width="20" height="16" rx="4" fill="#7a7cc4"/>
+        <text x="95" y="80" font-family="Space Grotesk" font-weight="700" font-size="30" fill="#fff" text-anchor="middle">php</text>
+        <!-- sweat drop -->
+        <path d="M58 22 q6 10 0 14 q-6 -4 0 -14z" fill="#9fd3ff"/>
+      </g>
+      <!-- lightning -->
+      <path d="M300 10 L268 92 L292 92 L262 170 L330 74 L302 74 L326 10 Z" fill="#f0b340" stroke="#c98a12" stroke-width="2"/>
+      <!-- AI eye -->
+      <g transform="translate(55 40)">
+        <rect x="0" y="0" width="70" height="44" rx="10" fill="#1b1d24"/>
+        <circle cx="22" cy="22" r="7" fill="#5cc98d"/><circle cx="48" cy="22" r="7" fill="#5cc98d"/>
+        <text x="35" y="62" font-family="JetBrains Mono" font-size="11" fill="#6d6fb3" text-anchor="middle">AI found it</text>
+      </g>
+    </svg>
+  </div>
+  <div class="wrap">
+    <div class="tldr">
+      <b>The 30-second version</b>
+      <ol>
+        <li><b>PHP</b> is the software engine that runs most websites (WordPress, Wikipedia, many government portals).</li>
+        <li>In August 2026, security researchers <b>using AI models</b> found two serious bugs in PHP. Some of this code dates back to 2012. The bugs let a stranger <b>take control of a server without logging in</b>.</li>
+        <li>The plan was to fix it quietly and announce on <b>22 Oct</b>. But details <b>leaked on 20 Oct</b>, and someone was already testing an attack on <b>17 Oct</b>.</li>
+        <li>Patches went out early on <b>21 Oct</b>. Governments in Finland, the Netherlands, the UK, France, Germany, Belgium, Czechia, Canada and others <b>took their own sites offline</b> as a precaution while they patched.</li>
+        <li>So the sites mostly went dark because <b>developers took them down to protect them</b>, not because hackers destroyed them. Attackers really did start scanning within hours, though.</li>
+      </ol>
+    </div>
+    <nav class="toc" aria-label="Contents">
+      <a href="#what">What is PHP2Shell</a><a href="#how">How the bug works</a><a href="#timeline">Timeline</a><a href="#cast">Who's who</a><a href="#offline">Who went offline</a><a href="#hackers">The hackers</a><a href="#conspiracy">Conspiracy corner</a><a href="#chatter">Forum chatter</a><a href="#india">India angle</a><a href="#glossary">Glossary</a><a href="#sources">Sources</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<!-- ============ WHAT ============ -->
+<section id="what">
+  <div class="wrap">
+    <div class="kicker">01 · The basics</div>
+    <h2>What actually is "PHP2Shell"?</h2>
+    <p class="lede">The name combines <b>PHP</b>, the programming language, with <b>shell</b>, hacker slang for a command line on someone else's computer. Put together, it means "a way to go from PHP to full control of the server."</p>
+    <div class="grid g3" style="margin-top:24px">
+      <div class="card stat"><b>~70%</b><span>of websites with a known server language run on PHP (W3Techs)</span></div>
+      <div class="card stat"><b>2012 → 2026</b><span>Every PHP version from 5.4 to 8.5 had at least one of the bugs</span></div>
+      <div class="card stat"><b>0</b><span>passwords needed. The attack works without logging in</span></div>
+      <div class="card stat"><b>2.6M – 37M</b><span>internet-facing PHP systems exposed, depending on who counted (VulnCheck, Bitsight)</span></div>
+      <div class="card stat"><b>79%</b><span>of PHP services found by Modat were on old, unsupported versions</span></div>
+      <div class="card stat"><b>13</b><span>staff at the PHP Foundation, which runs on donations (The Guardian, via Wikipedia)</span></div>
+    </div>
+    <p style="margin-top:22px">Why it was frightening: the bugs are in <b>PHP itself</b>, not in a particular website. A simple "Hello World" page on an affected PHP version could be vulnerable. The researchers showed full takeovers of <b>WordPress, Drupal and Joomla</b>, which together power a huge share of the web. Wiz compared it to <b>Heartbleed (2014)</b>, and many people compared it to <b>Log4Shell (2021)</b>.</p>
+  </div>
+</section>
+
+<!-- ============ HOW ============ -->
+<section id="how">
+  <div class="wrap">
+    <div class="kicker">02 · Explain it like a restaurant</div>
+    <h2>How the two bugs work</h2>
+    <p class="lede">Think of a website as a restaurant. <b>PHP is the kitchen</b>. Every visitor's request is an <b>order</b> that the kitchen cooks into a web page.</p>
+
+    <div class="grid" style="margin-top:24px;gap:20px">
+      <div class="card analogy">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+          <rect x="10" y="20" width="100" height="80" rx="10" fill="var(--red-soft)"/>
+          <g fill="var(--red)"><rect x="22" y="32" width="30" height="20" rx="3"/><rect x="58" y="32" width="40" height="20" rx="3"/><rect x="22" y="58" width="76" height="14" rx="3"/><rect x="22" y="78" width="50" height="12" rx="3" opacity=".6"/></g>
+          <path d="M70 72 l20 20" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+          <text x="60" y="16" font-size="11" font-family="JetBrains Mono" fill="var(--red)" text-anchor="middle">FULL!</text>
+        </svg>
+        <div>
+          <span class="verdict v-false">Bug 1 · CVE-2026-109618</span>
+          <h3>The overloaded kitchen ("out-of-memory corruption")</h3>
+          <p>An attacker sends one huge, oddly shaped order. The kitchen runs out of counter space (memory). It should calmly say "sorry, too big," but in the rush the chef <b>scribbles over the recipe book</b>. The attacker has planned the scribble so it reads as <i>their own</i> instructions, and the kitchen follows them. That means the attacker's code runs on the server.</p>
+          <p style="color:var(--muted);font-size:.9rem">Technical clue that defenders watch for: oversized or malformed <code>PHPSESSID</code> cookies and big multipart uploads, followed by "memory limit" errors or HTTP 500s. Security firm Hadrian said most real-world attacks abused PHP's <i>session upload-progress</i> feature.</p>
+        </div>
+      </div>
+
+      <div class="card analogy">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+          <ellipse cx="60" cy="80" rx="48" ry="14" fill="var(--amber-soft)"/>
+          <rect x="18" y="60" width="84" height="20" rx="4" fill="var(--amber)"/>
+          <rect x="36" y="42" width="30" height="22" rx="2" fill="#fff" stroke="var(--ink)" stroke-width="2" transform="rotate(-8 51 53)"/>
+          <text x="50" y="57" font-size="8" font-family="JetBrains Mono" fill="var(--red)" transform="rotate(-8 51 53)">pwd:**</text>
+          <text x="60" y="110" font-size="10" font-family="JetBrains Mono" fill="var(--amber)" text-anchor="middle">not wiped</text>
+        </svg>
+        <div>
+          <span class="verdict v-mix">Bug 2 · CVE-2026-109619</span>
+          <h3>The table nobody wiped ("stale global state" / use-after-free)</h3>
+          <p>After each customer leaves, the waiter is meant to clear the table. Sometimes PHP <b>forgets to wipe a few notes</b>. The next customer, who may be an attacker, can <b>read what the last person left behind</b>: passwords, login tokens, API keys, certificates. In some cases the attacker can also leave a note the kitchen later obeys, which gives them control.</p>
+          <p style="color:var(--muted);font-size:.9rem">"Use-after-free" means the program keeps using a piece of memory after it has handed that memory back, a bit like writing on a whiteboard someone else is already using.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- attack flow diagram -->
+    <div class="card" style="margin-top:20px">
+      <h3>The attack, step by step</h3>
+      <svg viewBox="0 0 900 170" role="img" aria-label="Attack flow: attacker sends crafted request, PHP memory corrupts, attacker gets shell, steals data or plants backdoor">
+        <g font-family="Inter" font-size="14" text-anchor="middle">
+          <rect x="10" y="40" width="170" height="80" rx="14" fill="var(--red-soft)"/><text x="95" y="75" fill="var(--red)" font-weight="700">1. Attacker</text><text x="95" y="97" fill="var(--muted)">sends a booby-trapped</text><text x="95" y="113" fill="var(--muted)">web request</text>
+          <rect x="245" y="40" width="170" height="80" rx="14" fill="var(--php-soft)"/><text x="330" y="75" fill="var(--php)" font-weight="700">2. PHP engine</text><text x="330" y="97" fill="var(--muted)">memory gets corrupted</text><text x="330" y="113" fill="var(--muted)">or leaks leftovers</text>
+          <rect x="480" y="40" width="170" height="80" rx="14" fill="var(--amber-soft)"/><text x="565" y="75" fill="var(--amber)" font-weight="700">3. "Shell"</text><text x="565" y="97" fill="var(--muted)">attacker's commands</text><text x="565" y="113" fill="var(--muted)">run on the server</text>
+          <rect x="715" y="40" width="175" height="80" rx="14" fill="var(--paper)" stroke="var(--line)"/><text x="802" y="75" fill="var(--ink)" font-weight="700">4. Damage</text><text x="802" y="97" fill="var(--muted)">steal data, deface site,</text><text x="802" y="113" fill="var(--muted)">plant a hidden backdoor</text>
+        </g>
+        <g stroke="var(--muted)" stroke-width="2.5" fill="none" marker-end="url(#ar)"><path d="M185 80 H238"/><path d="M420 80 H473"/><path d="M655 80 H708"/></g>
+        <defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="var(--muted)"/></marker></defs>
+        <text x="450" y="155" font-family="JetBrains Mono" font-size="12" fill="var(--muted)" text-anchor="middle">CrowdStrike: this attack leaves almost no traces. The only sign may be a memory-limit error that's easy to ignore.</text>
+      </svg>
+    </div>
+    <p class="note">This is also why the UK's NCSC told organisations to <b>check for backdoors</b> even after patching. Patching locks the door, but it doesn't remove anyone who already got inside.</p>
+  </div>
+</section>
+
+<!-- ============ TIMELINE ============ -->
+<section id="timeline">
+  <div class="wrap">
+    <div class="kicker">03 · What happened when</div>
+    <h2>The timeline</h2>
+    <p class="lede">From a 14-year-old bug to governments pulling the plug in about 72 hours.</p>
+    <div class="tl">
+      <div class="ev"><div class="date">2012</div><h3>PHP 5.4 is released</h3><p>The earliest version found to be affected. The flawed code sits unnoticed for years.</p></div>
+      <div class="ev"><div class="date">2024</div><h3>A warning that went nowhere</h3><p>A PHP core developer found the out-of-memory problem behind one flaw during an audit. The team couldn't agree on a fix, and nobody believed it could really be exploited, so it was set aside.</p></div>
+      <div class="ev"><div class="date">1–11 Aug 2026</div><h3>AI finds the bug</h3><p>Ryan Austin at <b>Calif</b>, an AI red-team firm working under OpenAI's "Patch the Planet" programme, finds it with <b>GPT-5.6 Sol</b>. OpenAI reports the same root cause separately. Sources give different dates: 1 Aug, 11 Aug, or "July."</p></div>
+      <div class="ev"><div class="date">19 Aug 2026 →</div><h3>Wiz joins in</h3><p><b>Wiz Research</b> (owned by Google) finds more variants using Gemini, GPT-5.6 and its own tool. Wiz names it "PHP2Shell." Over the next weeks the PHP team works on fixes in private (this is called an <i>embargo</i>).</p></div>
+      <div class="ev"><div class="date">16–17 Oct 2026</div><h3>Chainguard finds it too</h3><p>Chainguard hears that a disclosure is coming and finds the same flaw that night with its own AI system. It joins the private coordination group on 17 Oct.</p></div>
+      <div class="ev hot"><div class="date">17 Oct 2026</div><h3>The first mystery probe</h3><p>Amazon's honeypot network (MadPot) records an attempt to exploit the bug, <b>four days before anyone was told</b>. It came from an anonymising service in Australia. Amazon: "it remains unclear how the actor acquired exploit information."</p></div>
+      <div class="ev hot"><div class="date">20 Oct 2026 · 15:20 UTC</div><h3>The leak</h3><p>A Hacker News user, <b>"petecooper"</b>, posts a "Tell HN" warning citing a "reliable source": two PHP RCE bugs, the CVE numbers, a (wrong) score of 10.0, and a release date of 22 Oct. watchTowr confirms the details on X. In the rush, <b>Calif accidentally publishes a demo video of the exploit</b>, which is deleted but copied. PHP brings the release forward to 21 Oct.</p></div>
+      <div class="ev hot"><div class="date">21 Oct · 03:02 UTC</div><h3>Cloudflare starts blocking</h3><p>Emergency firewall rules go up. Cloudflare's CTO calls them a "STOPGAP only."</p></div>
+      <div class="ev hot"><div class="date">21 Oct · 07:41 UTC</div><h3>Chainguard ships early</h3><p>About six hours before the official release, Chainguard publishes fixed builds, citing overnight attacks while European maintainers slept. Attackers can now compare old and new code to see exactly what changed. ELLIO's sensors see their first PHP2Shell request less than an hour later.</p></div>
+      <div class="ev hot"><div class="date">21 Oct · 13:34 UTC</div><h3>Official patch</h3><p>PHP 8.5.12, 8.4.27, 8.3.36 and 8.2.35 are released. Source patches follow for end-of-life 7.4, 8.0 and 8.1. Sansec predicts "mass attacks within 15 minutes."</p></div>
+      <div class="ev hot"><div class="date">21 Oct · evening</div><h3>The lights go out</h3><p>Finland, the Netherlands, France, Germany, Belgium, Czechia, the UK, Canada and others take sites offline to patch. The NSA advises going offline if you can't update. Wikipedia's operator, 4chan, Something Awful, the Internet Archive and several Japanese games go down too.</p></div>
+      <div class="ev"><div class="date">22–24 Oct 2026</div><h3>Aftermath</h3><p>Cloudflare's CEO says attempts grew from "thousands" to "millions." A suspected North Korea-linked scanning campaign is reported. Fake exploit code and prank malware appear on GitHub. The leaker apologises publicly.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CAST ============ -->
+<section id="cast">
+  <div class="wrap">
+    <div class="kicker">04 · Who's who</div>
+    <h2>The cast of characters</h2>
+    <div class="grid g2" style="margin-top:20px">
+      <div class="card who"><div class="avatar" style="background:#2f8f5b">C</div><div><div class="role">The first finder</div><b>Calif (Ryan Austin)</b><p>AI red-teaming firm. Found the first flaw with GPT-5.6 Sol under OpenAI's "Patch the Planet." Also accidentally leaked the exploit demo video.</p></div></div>
+      <div class="card who"><div class="avatar" style="background:#1b1d24">AI</div><div><div class="role">The AI lab</div><b>OpenAI Codex Security (Amy Burnett)</b><p>Independently found more parts of the bug and is credited on the official PHP2Shell site.</p></div></div>
+      <div class="card who"><div class="avatar" style="background:#4b6bd6">W</div><div><div class="role">The namer</div><b>Wiz Research</b><p>Google-owned. Sagi Tzadik, Shir Tamari, Nir Ohfeld and Tomer Schwartz found more variants, built the demo exploits and coined "PHP2Shell."</p></div></div>
+      <div class="card who"><div class="avatar" style="background:#6d6fb3">P</div><div><div class="role">The fixers</div><b>PHP Foundation &amp; security team</b><p>A small, donation-funded team that had to fix a bug affecting 70% of the web, then had its schedule upended by the leak. Volunteer maintainer <b>Ondřej Surý</b> built packages for old versions and became an unlikely hero.</p></div></div>
+      <div class="card who"><div class="avatar" style="background:#c98a12">HN</div><div><div class="role">The accidental leaker</div><b>"petecooper" on Hacker News</b><p>Posted the warning two days early. Said he didn't know about the embargo and wanted to help people update. Later wrote: "I take full responsibility for my actions."</p></div></div>
+      <div class="card who"><div class="avatar" style="background:#d6453d">CG</div><div><div class="role">The early shipper</div><b>Chainguard (CEO Dan Lorenc)</b><p>Released fixed builds six hours early. The PHP Foundation said this "disregarded weeks of coordinated work." Lorenc said it was about real attacks, not customers, and apologised for the stress caused.</p></div></div>
+      <div class="card who"><div class="avatar" style="background:#f38020">CF</div><div><div class="role">The shield</div><b>Cloudflare, Amazon, Fastly, Akamai…</b><p>Put up emergency firewall rules and watched attacks in real time. Amazon's honeypot caught the mysterious 17 Oct probe.</p></div></div>
+      <div class="card who"><div class="avatar" style="background:#5c6170">?</div><div><div class="role">The attackers</div><b>Mostly unnamed</b><p>Scanning came mainly from Russian and Chinese IP addresses, per Chainguard. CYFIRMA tied one campaign to a North Korean (Lazarus-linked) operator with "moderate confidence." See <a href="#hackers">The hackers</a>.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ OFFLINE ============ -->
+<section id="offline">
+  <div class="wrap">
+    <div class="kicker">05 · The blackout map</div>
+    <h2>Who took their sites offline</h2>
+    <p class="lede">Most of these were <b>planned shutdowns</b>: governments unplugged their own websites so attackers couldn't reach them while they patched.</p>
+    <div class="pill-row">
+      <div class="cty"><span class="cc">FI</span><b>Finland</b><p>All government public web services were taken offline for a time.</p></div>
+      <div class="cty"><span class="cc">NL</span><b>Netherlands</b><p>Overheid.nl, the cybersecurity agency's own site, and services run by Kombit, including the national school communication platform.</p></div>
+      <div class="cty"><span class="cc">GB</span><b>United Kingdom</b><p>30+ government services, plus Edinburgh, Oxford, Bristol, Lambeth and Barnet councils and the Metropolitan Police website.</p></div>
+      <div class="cty"><span class="cc">FR</span><b>France</b><p>Interior Ministry and prefecture websites, plus many local government sites.</p></div>
+      <div class="cty"><span class="cc">DE</span><b>Germany</b><p>Several sites run by ITZBund, the federal IT service provider.</p></div>
+      <div class="cty"><span class="cc">BE</span><b>Belgium</b><p>Foreign ministry sites. No attacks were recorded on Belgian sites.</p></div>
+      <div class="cty"><span class="cc">CZ</span><b>Czech Republic</b><p>Government website offline from 7 p.m. on the cyber watchdog's advice.</p></div>
+      <div class="cty"><span class="cc">CA</span><b>Canada</b><p>Some government sites, following Canadian Centre for Cyber Security guidance.</p></div>
+      <div class="cty"><span class="cc">US</span><b>United States</b><p>The NSA advised going offline if you couldn't patch. CISA said it hadn't seen exploitation on 21 Oct.</p></div>
+      <div class="cty"><span class="cc">JP · SG · AU</span><b>Asia-Pacific</b><p>Japan, Singapore and Australia urged immediate patching. Japanese games such as Umamusume and Granblue Fantasy went offline.</p></div>
+      <div class="cty"><span class="cc">WEB</span><b>Big websites</b><p>The Wikimedia Foundation (Wikipedia's operator), the Internet Archive, 4chan, Something Awful and many online shops.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HACKERS ============ -->
+<section id="hackers">
+  <div class="wrap">
+    <div class="kicker">06 · The bad guys</div>
+    <h2>So who were the "hackers"?</h2>
+    <p class="lede">An important point: <b>nobody "hacked the governments" to cause the shutdown.</b> The people who found the bug were the good guys. The hackers are the ones who rushed to use it after it leaked.</p>
+    <div class="grid g2" style="margin-top:20px">
+      <div class="card"><h3>The 17 October ghost</h3><p>A single probe of Amazon's honeypot, four days early, from an anonymising network in Australia. Nobody knows who it was or how they knew. Amazon said there was "no evidence" it was harmless.</p></div>
+      <div class="card"><h3>The swarm after the leak</h3><p>Multiple groups sent different payloads, a sign of several separate actors. Scanners even labelled themselves (<code>php2shell-scan/109618</code>, <code>p2s-rider</code>). Pantheon blocked 60,000+ suspicious requests in a day.</p></div>
+      <div class="card"><h3>Suspected North Korea (Lazarus)</h3><p>CYFIRMA reported a slow, deliberately "low-volume" campaign from 21 hijacked servers. It shortlisted 216 unpatched targets, mainly <b>governments, banks, airports and payment platforms</b> in the US, Japan, Korea, <b>India</b>, the UAE, the EU and elsewhere. They point to North Korean vocabulary in a private chat channel. Confidence: <b>moderate</b>.</p></div>
+      <div class="card"><h3>Pranksters and scammers</h3><p>Fake "proof-of-concept" exploits were posted on GitHub. JFrog found one that just changed the victim's wallpaper to NSFW images. Lesson: never run random exploit code you download.</p></div>
+    </div>
+    <p class="note"><b>Did any government actually get breached through PHP2Shell?</b> As of the latest reporting, <b>no confirmed case</b>. Palo Alto's Unit 42 linked one European government agency attack to PHP2Shell, then <b>withdrew that claim</b>: "We are unable to confirm that initial access is associated with the specific PHP2Shell CVEs."</p>
+  </div>
+</section>
+
+<!-- ============ CONSPIRACY ============ -->
+<section id="conspiracy">
+  <div class="wrap">
+    <div class="kicker">07 · Conspiracy corner 🕵️</div>
+    <h2>The theories, and what the evidence says</h2>
+    <p class="lede">These ideas circulated on Hacker News, X and tech blogs. Each one gets a verdict based on what's actually been reported.</p>
+    <div class="grid g2" style="margin-top:20px">
+
+      <div class="theory">
+        <span class="verdict v-open">Unsolved mystery</span>
+        <h3>"Someone knew before everyone else"</h3>
+        <p>The 17 Oct probe came before the leak and before Chainguard's early release. That means someone had working knowledge of the bug while it was still secret. The private coordination group was big (several companies plus the PHP team), and Hacker News commenters noted that every extra person briefed is another possible leak.</p>
+        <p><span class="ev-label">Evidence:</span> real and unexplained. Amazon itself says it's unclear how they knew. Another possibility: AI makes it easier for more people to find the same bug independently.</p>
+        <div class="meter"><i style="width:70%;background:var(--php)"></i></div>
+      </div>
+
+      <div class="theory">
+        <span class="verdict v-false">No evidence</span>
+        <h3>"AI companies leaked it on purpose for hype"</h3>
+        <p>Some HN commenters felt the slick branding (a name, a website, elephant mascots, model credits) looked like <b>marketing for AI models</b>. One said it was "marketed as if it were the first RCE found in human history." OpenAI called it one of the most significant vulnerabilities its models had found.</p>
+        <p><span class="ev-label">Evidence:</span> the known leaker is an individual developer who apologised. No reporting shows an AI company planted the leak. The "it felt like an ad" criticism is opinion, though a common one.</p>
+        <div class="meter"><i style="width:15%;background:var(--red)"></i></div>
+      </div>
+
+      <div class="theory">
+        <span class="verdict v-mix">Disputed</span>
+        <h3>"Chainguard broke the embargo to help its paying customers"</h3>
+        <p>The PHP Foundation said publishing early let attackers study the fix while everyone else waited.</p>
+        <p><span class="ev-label">Evidence:</span> Chainguard admits it shipped early but says the builds were public, not customer-only, and that it acted because attacks were already happening overnight while the maintainers slept. The early release is confirmed. Why they did it is disputed.</p>
+        <div class="meter"><i style="width:45%;background:var(--amber)"></i></div>
+      </div>
+
+      <div class="theory">
+        <span class="verdict v-mix">Partly true</span>
+        <h3>"The Calif video leak was a PR stunt"</h3>
+        <p>Some suspected the accidentally public exploit video was a publicity move gone wrong.</p>
+        <p><span class="ev-label">Evidence:</span> the video really was published and then deleted, and copies spread. Every source calls it a <b>mistake</b>. Nothing shows it was intentional.</p>
+        <div class="meter"><i style="width:30%;background:var(--amber)"></i></div>
+      </div>
+
+      <div class="theory">
+        <span class="verdict v-true">Mostly true</span>
+        <h3>"They knew about this bug in 2024 and ignored it"</h3>
+        <p>An audit in 2024 found the out-of-memory problem. It went unfixed because the team couldn't agree on a fix and it seemed impossible to exploit.</p>
+        <p><span class="ev-label">Evidence:</span> confirmed. But "ignored" is unfair: a tiny volunteer-heavy team judged it low priority. The real issue critics raise is <b>funding</b>. The Guardian contrasted the PHP Foundation's 13 staff with the billions invested in AI.</p>
+        <div class="meter"><i style="width:80%;background:var(--green)"></i></div>
+      </div>
+
+      <div class="theory">
+        <span class="verdict v-mix">Moderate confidence</span>
+        <h3>"North Korea is behind it all"</h3>
+        <p>Headlines about Lazarus made some people think North Korea caused the incident.</p>
+        <p><span class="ev-label">Evidence:</span> North Korean-linked actors are suspected of <b>exploiting</b> the bug after it leaked (CYFIRMA, moderate confidence). They didn't create it or cause the leak. Plenty of others were scanning too.</p>
+        <div class="meter"><i style="width:40%;background:var(--amber)"></i></div>
+      </div>
+
+      <div class="theory">
+        <span class="verdict v-false">Overblown</span>
+        <h3>"A third of the internet is now permanently hackable"</h3>
+        <p>Viral posts on X said old, unsupported PHP versions would never get a fix.</p>
+        <p><span class="ev-label">Evidence:</span> maintainer Ondřej Surý pushed back. Source patches exist for 7.4, 8.0 and 8.1, and he built installable packages for old versions. The real risk is <b>people who never update</b>, not that a fix is impossible.</p>
+        <div class="meter"><i style="width:20%;background:var(--red)"></i></div>
+      </div>
+
+      <div class="theory">
+        <span class="verdict v-false">Retracted</span>
+        <h3>"A European government was hacked with PHP2Shell"</h3>
+        <p>Unit 42 linked an attack on a European government agency to the bug.</p>
+        <p><span class="ev-label">Evidence:</span> Unit 42 later <b>retracted</b> the link. No confirmed government breach so far.</p>
+        <div class="meter"><i style="width:10%;background:var(--red)"></i></div>
+      </div>
+    </div>
+    <p style="font-size:.85rem;color:var(--muted);margin-top:14px">The bar under each theory is my rough sense of how well the evidence supports it.</p>
+  </div>
+</section>
+
+<!-- ============ CHATTER ============ -->
+<section id="chatter">
+  <div class="wrap">
+    <div class="kicker">08 · What the forums said</div>
+    <h2>Forum and community chatter</h2>
+    <p class="lede">The main discussion happened on <b>Hacker News</b>, where the leak itself appeared, and on X. I couldn't find indexed Reddit threads or YouTube explainers in search. The closest to a video breakdown is Huntress researcher John Hammond's rapid-response write-up. Here are the main themes, paraphrased:</p>
+    <div class="grid g2" style="margin-top:20px">
+      <blockquote>"Who actually found it first?" Calif, OpenAI and Wiz timelines overlap, and people were confused about credit.<footer>Hacker News thread, paraphrased</footer></blockquote>
+      <blockquote>A PHP remote-code bug is no joke. What makes it scary is how many sites are exposed, not how clever the bug is.<footer>Hacker News commenter, paraphrased</footer></blockquote>
+      <blockquote>This is what C does. Memory bugs keep happening even to experts, so new projects should use memory-safe languages.<footer>Long memory-safety debate on HN, paraphrased</footer></blockquote>
+      <blockquote>You can't blame someone for breaking an embargo they were never told about. Others said posting it was still unwise.<footer>Reactions to petecooper's apology</footer></blockquote>
+      <blockquote>Jokes: "furries run the internet" (about the researchers' anime avatars), "one billion devices run Java," and the edited title "AI fumbles responsible disclosure."<footer>HN humour</footer></blockquote>
+      <blockquote>AI-driven co-discovery makes it more likely that several people find the same bug, so maybe long embargoes no longer reduce risk.<footer>Art Manion, FIRST (via TechTarget)</footer></blockquote>
+    </div>
+    <div class="card" style="margin-top:20px">
+      <h3>The bigger lesson everyone is talking about</h3>
+      <p style="margin:0">Amazon's CISO CJ Moses summed it up: AI is making it cheaper to turn a patch into a working attack, so "more actors can act within hours or even minutes." PHP2Shell may be the first big example of the <b>AI-vs-AI race</b>: AI finds the bug, and AI helps attackers weaponise the fix. Tolmo said it built a working exploit in under a day.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ INDIA ============ -->
+<section id="india">
+  <div class="wrap">
+    <div class="kicker">09 · Not the same story, but related</div>
+    <h2>The India angle (in case this is what you heard about)</h2>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="card">
+        <span class="verdict v-open">Separate incident</span>
+        <h3>Telangana's TG-iPASS portal hit by ransomware</h3>
+        <p>On <b>22 Oct 2026 at about 11:36 pm</b>, the day after the PHP2Shell patch, Telangana's single-window portal for industrial approvals went down. Officials found the database <b>encrypted</b>, with files renamed to <code>.vgb</code>, and a ransom note that <b>asked for no money</b>, just giving an email address. The Telangana Cyber Security Bureau (TGCSB) registered a case under IT Act Sections 43 and 66. Backups exist and restoration is underway.</p>
+        <p style="color:var(--muted);font-size:.9rem">No reporting links this to PHP2Shell, and whether data was stolen is still being investigated.</p>
+      </div>
+      <div class="card">
+        <span class="verdict v-open">Separate incident</span>
+        <h3>SBI customer data alert</h3>
+        <p>On <b>16 Oct 2026</b>, CERT-In alerted State Bank of India about suspected exposure of customer data on the dark web. I found nothing connecting this to PHP2Shell or TG-iPASS.</p>
+        <p style="color:var(--muted);font-size:.9rem">India was also on CYFIRMA's list of countries with targeted unpatched hosts in the suspected Lazarus scan.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GLOSSARY ============ -->
+<section id="glossary">
+  <div class="wrap">
+    <div class="kicker">10 · Jargon buster</div>
+    <h2>Glossary</h2>
+    <dl class="card">
+      <dt>PHP</dt><dd>A programming language that builds web pages on the server. Its mascot is a blue elephant (the "elePHPant").</dd>
+      <dt>RCE</dt><dd>Remote Code Execution: making someone else's computer run your commands over the internet. This is about as bad as a bug gets.</dd>
+      <dt>Shell</dt><dd>A command line. "Getting a shell" means getting control.</dd>
+      <dt>CVE</dt><dd>An official ID number for a known security bug, e.g. CVE-2026-109618.</dd>
+      <dt>CVSS</dt><dd>A severity score out of 10. A 9.2 is "critical."</dd>
+      <dt>Zero-day</dt><dd>A bug attackers can use before a fix exists.</dd>
+      <dt>Embargo</dt><dd>A private period when finders and fixers keep a bug secret until the patch is ready.</dd>
+      <dt>Proof of concept (PoC)</dt><dd>A demo showing that an attack really works.</dd>
+      <dt>Honeypot</dt><dd>A fake server set up to attract and record attackers, like Amazon's MadPot.</dd>
+      <dt>WAF</dt><dd>Web Application Firewall: a filter (e.g. Cloudflare) that blocks bad requests before they reach a site.</dd>
+      <dt>Backdoor</dt><dd>A hidden way back in that an attacker leaves behind.</dd>
+      <dt>Lazarus Group</dt><dd>A hacking group widely linked to North Korea.</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- ============ SOURCES ============ -->
+<section id="sources" style="border-bottom:none">
+  <div class="wrap">
+    <div class="kicker">11 · Receipts</div>
+    <h2>Sources</h2>
+    <p class="lede" style="font-size:1rem">Research done on 26 Oct 2026. This story is still developing, and sources disagree on some details, such as the exact discovery date and whether exploitation was seen on 21 Oct. Where they disagree, both versions are given above.</p>
+    <ul class="src">
+      <li><a href="https://www.php2shell.com/">PHP2Shell official site</a> (Wiz / OpenAI / Calif)</li>
+      <li><a href="https://en.wikipedia.org/wiki/PHP2Shell">Wikipedia: PHP2Shell</a></li>
+      <li><a href="https://www.cnbc.com/2026/10/22/php2shell-vulnerability-what-is-it-and-is-your-data-at-risk.html">CNBC: Why governments pulled websites offline</a></li>
+      <li><a href="https://www.npr.org/2026/10/24/nx-s1-6012327/ai-found-the-flaw-hackers-found-the-leak-the-race-to-save-php2shell">NPR: AI found the flaw. Hackers found the leak</a> · <a href="https://www.npr.org/2026/10/23/g-s1-149503/hacking-php-flaws">NPR: Hacking attempts rise</a></li>
+      <li><a href="https://fortune.com/2026/10/21/ai-tools-discovered-the-php-vulnerability-that-could-take-down-70-of-the-internet-now-the-race-is-on-to-patch-it-before-ai-powered-hackers-attack/">Fortune: AI helped discover the PHP vulnerability</a></li>
+      <li><a href="https://www.dailymaverick.co.za/article/2026-10-22-government-websites-go-dark-after-ai-discovered-flaw-sparks-security-scramble/">Daily Maverick: Government websites go dark</a></li>
+      <li><a href="https://www.techtarget.com/cybersecurity/news/366652613/PHP2Shell-disclosure-unravels-after-leaks-forced-early-patch-drop">TechTarget: Disclosure unravels after leaks</a></li>
+      <li><a href="https://thehackernews.com/2026/10/someone-tried-to-exploit-php2shell-4.html">The Hacker News: Exploit attempt 4 days before disclosure</a> · <a href="https://thehackernews.com/2026/10/php2shell-exploitation-hits-government.html">Suspected North Korea scanning</a></li>
+      <li><a href="https://www.securityweek.com/php2shell-exploitation-started-days-before-patches/">SecurityWeek</a> · <a href="https://www.infosecurity-magazine.com/news/php2shell-exploitation-attempt/">Infosecurity Magazine</a> · <a href="https://www.darkreading.com/application-security/php2shell-bugs-red-alert-security-industry">Dark Reading</a></li>
+      <li><a href="https://socradar.io/blog/php2shell-cve-2026-109618-cve-2026-109619/">SOCRadar</a> · <a href="https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities">Huntress (John Hammond)</a> · <a href="https://blog.cloudflare.com/php-vulnerabilities-waf-protection/">Cloudflare blog</a> · <a href="https://www.malwarebytes.com/?p=479720">Malwarebytes</a></li>
+      <li><a href="https://tech-insider.org/why-governments-pulled-websites-offline-php-2026/">Tech Insider: 6 governments pulled sites</a> · <a href="https://www.insurancebusinessmag.com/uk/news/cyber/uk-councils-and-met-police-among-sites-pulled-offline-after-ncsc-alert-594424.aspx">Insurance Business: UK councils &amp; Met Police</a> · <a href="https://unn.ua/en/news/government-websites-across-europe-and-around-the-world-are-being-taken-offline-en-masse-due-to-the-threat-of-large-scale-cyberattacks">UNN</a></li>
+      <li><a href="https://news.ycombinator.com/item?id=50180836">Hacker News discussion thread</a> · <a href="https://pbxscience.com/php2shell-leak-poster-apologizes-says-he-did-not-know-the-vulnerabilities-were-under-embargo/">Leaker's apology (PBX Science)</a> · <a href="https://dev.to/max_quimby/ai-found-the-php-zero-day-first-now-what-46np">DEV Community</a> · <a href="https://note.com/hirokimiyano/n/n6b09a935362e?hl=en">note.com (Japanese explainer)</a></li>
+      <li><a href="https://telanganatoday.com/tg-ipass-portal-services-disrupted-since-october-22-after-suspected-ransomware-attack">Telangana Today: TG-iPASS ransomware</a> · <a href="https://munsifdaily.com/ransomware-attack-hits-tg-ipass-portal-industrial-approvals-disrupted/">Munsif Daily</a></li>
+      <li><a href="https://arxiv.org/pdf/2607.27030">arXiv: HoF-Bench, rediscovering AI-discovered CVEs</a> (academic background on AI bug-finding)</li>
+    </ul>
+  </div>
+</section>
+</main>
+
+<footer class="end"><div class="wrap">Research compiled 26 October 2026 · Explained in plain language for curious readers. This is not security advice: if you run PHP, update to 8.2.35 / 8.3.36 / 8.4.27 / 8.5.12 or later and restart your PHP workers.</div></footer>
+</body>
+</html>
